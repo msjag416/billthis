@@ -20,9 +20,11 @@ A private receipt maker for JoAnne's businesses. Fill in the form on the left, w
 
 Everything stays in the browser you use it in. Nothing is sent anywhere. Use **Back up** every so often, and **Restore** to move your data to another computer or browser.
 
-## Putting it online
+## Where it lives
 
-It's a plain website with no build step. On vercel.com choose **Add New → Project**, pick the `billthis` repo, and press **Deploy**. Vercel needs no settings for it.
+The site is live at **https://msjag416.github.io/billthis/** (free GitHub Pages hosting).
+
+GitHub Pages shows whatever is on the `gh-pages` branch. After any change to `main`, the same change must also be sent to `gh-pages` (`git push origin main:gh-pages`) for the live site to update.
 
 To try it on your own computer, just double-click `index.html`.
 
