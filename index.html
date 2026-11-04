@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BillThis Receipts</title>
+  <meta name="description" content="A private receipt maker for your own businesses. Fill in the details, see the receipt live, download as PDF or image.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">B</span>
+      <span class="brand-name">BillThis</span>
+    </div>
+    <div class="profile-switch">
+      <label for="profileSelect" class="sr-only">Business</label>
+      <select id="profileSelect" title="Switch business"></select>
+      <button class="btn ghost" id="newProfileBtn" title="Add another business">+ Business</button>
+    </div>
+    <nav class="top-actions">
+      <button class="btn ghost" id="historyBtn">History</button>
+      <button class="btn ghost" id="newReceiptBtn">New</button>
+      <button class="btn" id="saveBtn">Save</button>
+    </nav>
+  </header>
+
+  <div class="mobile-tabs">
+    <button class="tab active" data-view="edit">Edit</button>
+    <button class="tab" data-view="preview">Preview</button>
+  </div>
+
+  <main class="workspace" data-view="edit">
+    <!-- ============ EDITOR ============ -->
+    <section class="editor" id="editor">
+
+      <details class="card" open>
+        <summary>Receipt details</summary>
+        <div class="grid">
+          <label class="span2">Title
+            <input list="titleOptions" data-field="title" placeholder="Receipt">
+            <datalist id="titleOptions">
+              <option value="Receipt"><option value="Payment Receipt"><option value="Sales Receipt">
+              <option value="Service Receipt"><option value="Invoice"><option value="Rent Receipt">
+              <option value="Donation Receipt"><option value="Cash Receipt">
+            </datalist>
+          </label>
+          <label>Receipt #
+            <input data-field="number">
+          </label>
+          <label>Currency
+            <select data-field="currency">
+              <option value="CAD">CAD $</option>
+              <option value="USD">USD $</option>
+              <option value="KYD">KYD $</option>
+              <option value="EUR">EUR €</option>
+              <option value="GBP">GBP £</option>
+            </select>
+          </label>
+          <label>Date
+            <input type="date" data-field="date">
+          </label>
+          <label>Time <small>(optional)</small>
+            <input type="time" data-field="time">
+          </label>
+        </div>
+      </details>
+
+      <details class="card" open>
+        <summary>Your business</summary>
+        <div class="grid">
+          <label class="span2">Business name
+            <input data-biz="name" placeholder="Your business name">
+          </label>
+          <label class="span2">Address
+            <textarea data-biz="address" rows="2" placeholder="Street, City, Province, Postal code"></textarea>
+          </label>
+          <label>Phone <input data-biz="phone"></label>
+          <label>Email <input data-biz="email" type="email"></label>
+          <label>Website <input data-biz="website"></label>
+          <label>Tax / HST # <input data-biz="taxId" placeholder="e.g. 12345 6789 RT0001"></label>
+          <div class="span2 logo-row">
+            <div class="logo-thumb" id="logoThumb">No logo</div>
+            <div class="logo-actions">
+              <label class="btn ghost file-btn">Upload logo
+                <input type="file" id="logoInput" accept="image/*" hidden>
+              </label>
+              <button class="btn ghost" id="removeLogoBtn">Remove</button>
+            </div>
+          </div>
+          <label class="span2">Receipt # prefix <small>(next number counts up when you save)</small>
+            <input data-biz="numberPrefix" placeholder="e.g. PRN-">
+          </label>
+        </div>
+      </details>
+
+      <details class="card" open>
+        <summary>Customer</summary>
+        <div class="grid">
+          <label class="span2">Name / company <input data-cust="name"></label>
+          <label class="span2">Address <textarea data-cust="address" rows="2"></textarea></label>
+          <label>Email <input data-cust="email" type="email"></label>
+          <label>Phone <input data-cust="phone"></label>
+        </div>
+      </details>
+
+      <details class="card" open>
+        <summary>Items</summary>
+        <div class="items-head">
+          <span>Description</span><span>Qty</span><span>Price</span><span title="Apply tax">Tax</span><span></span>
+        </div>
+        <div id="itemsList"></div>
+        <button class="btn ghost add" id="addItemBtn">+ Add item</button>
+      </details>
+
+      <details class="card" open>
+        <summary>Tax, discounts &amp; extras</summary>
+        <div id="taxList"></div>
+        <button class="btn ghost add" id="addTaxBtn">+ Add tax</button>
+        <div class="grid extras">
+          <label>Discount
+            <div class="combo">
+              <input type="number" min="0" step="0.01" data-field="discountValue" placeholder="0">
+              <select data-field="discountType">
+                <option value="amount">$</option>
+                <option value="percent">%</option>
+              </select>
+            </div>
+          </label>
+          <label>Shipping / delivery
+            <input type="number" min="0" step="0.01" data-field="shipping" placeholder="0">
+          </label>
+          <label>Tip / gratuity
+            <input type="number" min="0" step="0.01" data-field="tip" placeholder="0">
+          </label>
+          <label class="check">
+            <input type="checkbox" data-field="taxIncluded"> Prices already include tax
+          </label>
+        </div>
+      </details>
+
+      <details class="card" open>
+        <summary>Payment</summary>
+        <div class="grid">
+          <label>Method
+            <input list="payOptions" data-field="paymentMethod" placeholder="e-Transfer">
+            <datalist id="payOptions">
+              <option value="Interac e-Transfer"><option value="Cash"><option value="Credit card">
+              <option value="Debit"><option value="Cheque"><option value="Bank transfer">
+              <option value="PayPal"><option value="Stripe">
+            </datalist>
+          </label>
+          <label>Reference # <input data-field="paymentRef" placeholder="Confirmation / cheque #"></label>
+          <label>Amount paid <small>(blank = paid in full)</small>
+            <input type="number" min="0" step="0.01" data-field="amountPaid">
+          </label>
+          <label class="check">
+            <input type="checkbox" data-field="showPaidStamp"> Show PAID stamp
+          </label>
+        </div>
+      </details>
+
+      <details class="card" open>
+        <summary>Notes</summary>
+        <div class="grid">
+          <label class="span2">Note to customer
+            <textarea data-field="notes" rows="2" placeholder="Details, terms, or service dates"></textarea>
+          </label>
+          <label class="span2">Footer message
+            <input data-field="footer" placeholder="Thank you for your business!">
+          </label>
+        </div>
+      </details>
+
+      <details class="card" open>
+        <summary>Look &amp; style</summary>
+        <div class="template-picker" id="templatePicker">
+          <button data-template="modern"><span class="tp tp-modern"></span>Modern</button>
+          <button data-template="classic"><span class="tp tp-classic"></span>Classic</button>
+          <button data-template="minimal"><span class="tp tp-minimal"></span>Minimal</button>
+          <button data-template="thermal"><span class="tp tp-thermal"></span>Till roll</button>
+        </div>
+        <div class="grid">
+          <label>Font
+            <select data-field="font">
+              <option value="sans">Clean sans</option>
+              <option value="serif">Elegant serif</option>
+              <option value="mono">Typewriter mono</option>
+            </select>
+          </label>
+          <label>Logo position
+            <select data-field="logoPos">
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </label>
+          <label>Footer alignment
+            <select data-field="footerAlign">
+              <option value="center">Center</option>
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+            </select>
+          </label>
+          <label>Accent colour
+            <div class="swatches" id="swatches"></div>
+          </label>
+        </div>
+      </details>
+
+      <div class="card data-card">
+        <p>Everything is saved in this browser only. Back up now and then so you never lose your businesses or history.</p>
+        <div class="row">
+          <button class="btn ghost" id="exportBtn">Back up</button>
+          <label class="btn ghost file-btn">Restore
+            <input type="file" id="importInput" accept="application/json" hidden>
+          </label>
+          <button class="btn ghost danger" id="deleteProfileBtn">Delete this business</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PREVIEW ============ -->
+    <section class="preview">
+      <div class="preview-bar">
+        <span class="preview-label">Live preview</span>
+        <div class="row">
+          <button class="btn ghost" id="pngBtn">Image</button>
+          <button class="btn ghost" id="printBtn">Print</button>
+          <button class="btn" id="pdfBtn">Download PDF</button>
+        </div>
+      </div>
+      <div class="paper-wrap">
+        <article id="receipt" class="receipt"></article>
+      </div>
+    </section>
+  </main>
+
+  <!-- History drawer -->
+  <aside class="drawer" id="historyDrawer" aria-hidden="true">
+    <div class="drawer-head">
+      <h2>Saved receipts</h2>
+      <button class="btn ghost" id="closeHistoryBtn">Close</button>
+    </div>
+    <input id="historySearch" placeholder="Search by customer, number or amount">
+    <div id="historyList"></div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <div class="toast" id="toast"></div>
+</body>
+</html>
