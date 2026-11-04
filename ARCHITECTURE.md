@@ -2,11 +2,12 @@
 
 This is the plain-English map of the app. Update it whenever something changes.
 
-## The three files
+## The four files
 
 | File | What it does |
 |---|---|
-| `index.html` | The page itself: the top bar, the form on the left, the receipt preview on the right, and the History drawer. |
+| `index.html` | The page itself: the top bar, the form on the left, the receipt preview on the right, the History drawer, and the template gallery. |
+| `templates.js` | The list of templates in the gallery (19 so far), grouped by type. Add a new one by copying an entry. |
 | `styles.css` | How everything looks. The top half styles the app. The bottom half ("Receipt paper") styles the receipt, including the four looks. |
 | `app.js` | The brains: remembers your data, does the math, draws the receipt, and handles the buttons. |
 
@@ -45,9 +46,11 @@ Logos are shrunk to at most 480 pixels before saving so they don't fill up the b
 
 Each business has a prefix (like `PRN-`) and a next number. A new receipt shows prefix + next number padded to four digits. When you **Save** a new receipt with that number, the next number goes up by one. Saving an opened receipt again just updates it. "Copy as new" gives the copy the next number and today's date.
 
-## The four looks
+## Templates and layouts
 
-The receipt is one piece of HTML. The look is a class on it (`t-modern`, `t-classic`, `t-minimal`, `t-thermal`) and the font is another (`f-sans`, `f-serif`, `f-mono`). The accent colour is a CSS variable. Till roll is a narrow 320-pixel slip in a typewriter font that hides the quantity and price columns.
+**Templates** are what you pick in the gallery: Business, Services, Retail, Food, Stay & Travel, and Rent & Other. Each one in `templates.js` sets a layout, font, colour, title, footer and starter lines. The gallery opens on your first visit, every time you press **New**, and from **Templates** or **Browse templates**. Picking one for a new receipt starts fresh. Picking one while changing template only restyles it and keeps your details and items (unless the items are empty, then it adds the starter lines). The little gallery previews are real receipts drawn by the same `buildReceipt()` code as the main preview, using sample prices and your business name.
+
+**Layouts** are the five page designs underneath: Modern, Classic, Minimal, Bold header and Till roll. You can switch layout on its own in Look & style. The receipt is one piece of HTML. The layout is a class on it (`t-modern`, `t-classic`, `t-minimal`, `t-bold`, `t-thermal`) and the font is another (`f-sans`, `f-serif`, `f-mono`). The accent colour is a CSS variable. Till roll is a narrow 320-pixel slip in a typewriter font that hides the quantity and price columns.
 
 ## Exporting
 

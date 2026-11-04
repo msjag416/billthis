@@ -12,6 +12,7 @@
     GBP: { symbol: "£", locale: "en-GB" },
   };
 
+  const TEMPLATES = window.BILLTHIS_TEMPLATES || [];
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
@@ -33,7 +34,7 @@
       defaults: {
         currency: "CAD",
         taxes: [{ name: "HST", rate: 13 }],
-        template: "modern", font: "sans", accent: ACCENTS[0],
+        preset: "modern", template: "modern", font: "sans", accent: ACCENTS[0],
         logoPos: "left", footerAlign: "center",
         paymentMethod: "Interac e-Transfer",
         footer: "Thank you for your business!",
@@ -61,7 +62,7 @@
       shipping: "", tip: "", taxIncluded: false,
       paymentMethod: d.paymentMethod, paymentRef: "", amountPaid: "", showPaidStamp: false,
       notes: "", footer: d.footer,
-      template: d.template, font: d.font, accent: d.accent,
+      preset: d.preset || "", template: d.template, font: d.font, accent: d.accent,
       logoPos: d.logoPos, footerAlign: d.footerAlign,
     };
   }
@@ -90,7 +91,7 @@
 
   /* ---------------- Money ---------------- */
 
-  function money(v, code = current.currency) {
+  function moneyFmt(v, code) {
     const c = CURRENCY[code] || CURRENCY.CAD;
     const n = Math.round(v * 100) / 100;
     const body = Math.abs(n).toLocaleString(c.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -137,10 +138,19 @@
   }
 
   function renderReceipt() {
-    const r = current, b = profile().business, t = totals(r);
     const el = $("#receipt");
-    el.className = `receipt t-${r.template} f-${r.font}`;
-    el.style.setProperty("--r-accent", r.accent);
+    const out = buildReceipt(current, profile().business);
+    el.className = out.cls;
+    el.style.setProperty("--r-accent", current.accent);
+    el.innerHTML = out.html;
+    fitPreview();
+  }
+
+  // Builds the receipt's HTML from a receipt and a business. Used by the
+  // live preview and by the little previews in the template gallery.
+  function buildReceipt(r, b) {
+    const t = totals(r);
+    const money = (v) => moneyFmt(v, r.currency);
 
     const bizLines = [b.address, [b.phone, b.email].filter(Boolean).join("  ·  "), b.website, b.taxId ? `Tax/HST #: ${b.taxId}` : ""]
       .filter(Boolean).map((x) => `<div>${esc(x)}</div>`).join("");
@@ -169,7 +179,7 @@
     const pay = [r.paymentMethod ? `Paid by ${esc(r.paymentMethod)}` : "", r.paymentRef ? `Ref: ${esc(r.paymentRef)}` : ""].filter(Boolean).join("  ·  ");
     const logoPos = r.template === "thermal" ? "center" : r.logoPos;
 
-    el.innerHTML = `
+    const html = `
       <header class="r-head logo-${logoPos}">
         <div class="r-biz">
           ${b.logo ? `<img class="r-logo" src="${b.logo}" alt="">` : ""}
@@ -206,7 +216,7 @@
       ${r.notes ? `<p class="r-notes">${esc(r.notes)}</p>` : ""}
       ${r.footer ? `<footer class="r-footer" style="text-align:${r.template === "thermal" ? "center" : r.footerAlign}">${esc(r.footer)}</footer>` : ""}
     `;
-    fitPreview();
+    return { cls: `receipt t-${r.template} f-${r.font}`, html };
   }
 
   // Shrink the paper on small screens so it fits without sideways scrolling
@@ -258,7 +268,8 @@
   }
 
   function renderStylePickers() {
-    $$("#templatePicker button").forEach((b) => b.classList.toggle("active", b.dataset.template === current.template));
+    const tp = TEMPLATES.find((x) => x.id === current.preset);
+    $("#currentTemplateName").textContent = tp ? tp.name : "Custom";
     $("#swatches").innerHTML = ACCENTS.map((c) =>
       `<button class="swatch ${c === current.accent ? "active" : ""}" data-accent="${c}" style="background:${c}" title="${c}"></button>`).join("") +
       `<input type="color" id="customAccent" value="${current.accent}" title="Custom colour" style="width:28px;height:28px;padding:0;border:none;background:none">`;
@@ -302,7 +313,6 @@
     if (!t) return;
     if (t.matches("[data-remove-item]")) { current.items.splice(+t.dataset.removeItem, 1); if (!current.items.length) current.items.push({ desc: "", qty: 1, price: "", taxable: true }); renderItems(); changed(); }
     else if (t.matches("[data-remove-tax]")) { current.taxes.splice(+t.dataset.removeTax, 1); renderTaxes(); changed(); }
-    else if (t.matches("[data-template]")) { current.template = t.dataset.template; renderStylePickers(); changed(); }
     else if (t.matches("[data-accent]")) { current.accent = t.dataset.accent; renderStylePickers(); changed(); }
   });
 
@@ -366,7 +376,7 @@
 
   function rememberDefaults(p, r) {
     Object.assign(p.defaults, {
-      currency: r.currency, taxes: clone(r.taxes), template: r.template, font: r.font, accent: r.accent,
+      currency: r.currency, taxes: clone(r.taxes), preset: r.preset, template: r.template, font: r.font, accent: r.accent,
       logoPos: r.logoPos, footerAlign: r.footerAlign, paymentMethod: r.paymentMethod, footer: r.footer,
     });
   }
@@ -390,11 +400,7 @@
     if (persist()) toast(isNew ? `Saved ${current.number}` : "Updated");
   };
 
-  $("#newReceiptBtn").onclick = () => {
-    current = newReceipt(profile());
-    fillForm(); changed();
-    toast("New receipt");
-  };
+  $("#newReceiptBtn").onclick = () => openGallery("new");
 
   function openHistory() {
     renderHistory();
@@ -420,7 +426,7 @@
       <div class="hist-item" data-id="${h.id}">
         <div><strong>${esc(h.receipt.customer.name || "No customer")}</strong>
           <div class="meta">${esc(h.receipt.number)} · ${fmtDate(h.receipt.date)} · ${esc(h.bizName)}</div></div>
-        <div class="amt">${money(h.total, h.receipt.currency)}</div>
+        <div class="amt">${moneyFmt(h.total, h.receipt.currency)}</div>
         <div class="row">
           <button class="btn ghost" data-h="open">Open</button>
           <button class="btn ghost" data-h="copy">Copy as new</button>
@@ -456,6 +462,91 @@
     fillForm(); changed(); closeHistory();
     toast(action === "copy" ? "Copied — remember to save" : `Opened ${current.number}`);
   };
+
+  /* ---------------- Template gallery ---------------- */
+
+  let galleryMode = "change"; // "new" = start a fresh receipt, "change" = restyle this one
+  let galleryCat = "All";
+
+  function applyTemplate(tp, r, fresh) {
+    Object.assign(r, { preset: tp.id, template: tp.layout, font: tp.font, accent: tp.accent, title: tp.title, footer: tp.footer });
+    const blank = r.items.every((i) => !i.desc && !num(i.price));
+    if (fresh || blank) r.items = tp.items.map(([desc, qty]) => ({ desc, qty, price: "", taxable: !tp.noTax }));
+    if (fresh) {
+      if (tp.noTax) r.taxes = [];
+      if (tp.method) r.paymentMethod = tp.method;
+      r.showPaidStamp = false;
+    }
+  }
+
+  // A filled-in sample receipt for the gallery thumbnails
+  function sampleFor(tp) {
+    const r = newReceipt(profile());
+    applyTemplate(tp, r, true);
+    r.items = tp.items.map(([desc, qty, price]) => ({ desc, qty, price, taxable: !tp.noTax }));
+    r.customer.name = tp.layout === "thermal" ? "" : "Customer Name";
+    if (tp.tip) r.tip = tp.tip;
+    if (tp.unpaid) r.amountPaid = 0;
+    return r;
+  }
+
+  function renderGallery() {
+    const cats = ["All", ...new Set(TEMPLATES.map((t) => t.cat))];
+    $("#galleryCats").innerHTML = cats.map((c) =>
+      `<button class="chip ${c === galleryCat ? "active" : ""}" data-cat="${esc(c)}">${esc(c)}</button>`).join("");
+    const list = TEMPLATES.filter((t) => galleryCat === "All" || t.cat === galleryCat);
+    const b = profile().business;
+    const biz = { ...b, name: b.name && b.name !== "My Business" ? b.name : "Your Business" };
+    $("#galleryGrid").innerHTML = list.map((tp) => {
+      const s = sampleFor(tp), out = buildReceipt(s, biz);
+      return `
+        <button class="tpl-card ${tp.id === current.preset ? "active" : ""}" data-tpl="${tp.id}">
+          <div class="tpl-thumb ${tp.layout === "thermal" ? "narrow" : ""}">
+            <article class="${out.cls}" style="--r-accent:${tp.accent}">${out.html}</article>
+          </div>
+          <div class="tpl-info">
+            <strong>${esc(tp.name)}</strong>
+            <span>${esc(tp.blurb)}</span>
+          </div>
+        </button>`;
+    }).join("");
+    requestAnimationFrame(() => $$(".tpl-thumb").forEach((th) => {
+      const rc = th.firstElementChild;
+      const z = (th.clientWidth * (th.classList.contains("narrow") ? 0.62 : 0.92)) / rc.offsetWidth;
+      rc.style.zoom = z.toFixed(3);
+    }));
+  }
+
+  function openGallery(mode) {
+    galleryMode = mode;
+    $("#galleryTitle").textContent = mode === "new" ? "Pick a template for your new receipt" : "Change template";
+    $("#galleryNote").textContent = mode === "new" ? "You can change it any time." : "Your details and items stay as they are.";
+    $("#gallery").classList.add("open");
+    $("#gallery").setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+    renderGallery();
+  }
+  function closeGallery() {
+    $("#gallery").classList.remove("open");
+    $("#gallery").setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
+  $("#gallery").addEventListener("click", (e) => {
+    if (e.target === $("#gallery") || e.target.closest("#closeGalleryBtn")) return closeGallery();
+    const chip = e.target.closest("[data-cat]");
+    if (chip) { galleryCat = chip.dataset.cat; renderGallery(); return; }
+    const card = e.target.closest("[data-tpl]");
+    if (!card) return;
+    const tp = TEMPLATES.find((t) => t.id === card.dataset.tpl);
+    if (galleryMode === "new") { current = newReceipt(profile()); applyTemplate(tp, current, true); }
+    else applyTemplate(tp, current, false);
+    fillForm(); changed(); closeGallery();
+    toast(`${tp.name} template`);
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeGallery(); closeHistory(); } });
+  $("#templatesBtn").onclick = () => openGallery("change");
+  $("#changeTemplateBtn").onclick = () => openGallery("change");
 
   /* ---------------- Backup ---------------- */
 
@@ -548,10 +639,12 @@
 
   /* ---------------- Start ---------------- */
 
+  const firstVisit = !state.draft && !state.history.length;
   current = state.draft && state.profiles.some((p) => p.id === state.draft.profileId) ? state.draft : newReceipt(profile());
   state.activeProfileId = current.profileId;
   fillForm();
   renderReceipt();
+  if (firstVisit) openGallery("new");
 
   // Expose for tests in the browser console
   window.BillThis = { get state() { return state; }, get current() { return current; }, totals };

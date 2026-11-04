@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+  <script src="templates.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -24,6 +25,7 @@
       <button class="btn ghost" id="newProfileBtn" title="Add another business">+ Business</button>
     </div>
     <nav class="top-actions">
+      <button class="btn ghost" id="templatesBtn">Templates</button>
       <button class="btn ghost" id="historyBtn">History</button>
       <button class="btn ghost" id="newReceiptBtn">New</button>
       <button class="btn" id="saveBtn">Save</button>
@@ -179,13 +181,23 @@
 
       <details class="card" open>
         <summary>Look &amp; style</summary>
-        <div class="template-picker" id="templatePicker">
-          <button data-template="modern"><span class="tp tp-modern"></span>Modern</button>
-          <button data-template="classic"><span class="tp tp-classic"></span>Classic</button>
-          <button data-template="minimal"><span class="tp tp-minimal"></span>Minimal</button>
-          <button data-template="thermal"><span class="tp tp-thermal"></span>Till roll</button>
+        <div class="current-template">
+          <div>
+            <span class="ct-label">Template</span>
+            <strong id="currentTemplateName">Modern</strong>
+          </div>
+          <button class="btn" id="changeTemplateBtn">Browse templates</button>
         </div>
         <div class="grid">
+          <label>Layout
+            <select data-field="template">
+              <option value="modern">Modern</option>
+              <option value="classic">Classic</option>
+              <option value="minimal">Minimal</option>
+              <option value="bold">Bold header</option>
+              <option value="thermal">Till roll</option>
+            </select>
+          </label>
           <label>Font
             <select data-field="font">
               <option value="sans">Clean sans</option>
@@ -251,6 +263,21 @@
     <div id="historyList"></div>
   </aside>
   <div class="scrim" id="scrim"></div>
+
+  <!-- Template gallery -->
+  <div class="gallery" id="gallery" aria-hidden="true">
+    <div class="gallery-panel" role="dialog" aria-labelledby="galleryTitle">
+      <div class="gallery-head">
+        <div>
+          <h2 id="galleryTitle">Choose a template</h2>
+          <p id="galleryNote"></p>
+        </div>
+        <button class="btn ghost" id="closeGalleryBtn">Close</button>
+      </div>
+      <div class="chips" id="galleryCats"></div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+  </div>
 
   <div class="toast" id="toast"></div>
 </body>

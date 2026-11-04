@@ -10,7 +10,8 @@ A private receipt maker for JoAnne's businesses. Fill in the form on the left, w
 - Ontario HST 13% set up by default, with room for more than one tax line, or none
 - Discounts (dollar or percent), shipping, tips, and "prices already include tax"
 - Payment method, reference number, amount paid and balance due, plus an optional PAID stamp
-- Four looks: Modern, Classic, Minimal and Till roll (narrow store-style slip), with three fonts and your choice of accent colour
+- A template gallery with 19 templates by type (business, services, retail, food, stay and travel, rent, donations, cash), each with a live preview
+- Five layouts underneath (Modern, Classic, Minimal, Bold header, Till roll), three fonts and your choice of accent colour
 - CAD, USD, KYD, EUR and GBP
 - History of every saved receipt, with search, reopen, and "copy as new"
 - Back up and restore everything as one file
